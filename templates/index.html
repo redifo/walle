@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Robot Control</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #video-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+        }
+
+         #video {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .motor-buttons {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 20px;
+	
+    }
+
+    .motor-buttons button {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        border: none;
+        background-color: #ccc;
+        font-size: 20px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        cursor: pointer;
+    }
+
+
+        #text-input {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="video-container">
+        <img id="video" src="{{ url_for('video_feed') }}" alt="Camera Feed">
+    </div>
+
+    <div id="controls">
+       <div class="motor-buttons" style="margin-top: 100px;">
+            <button id="right-button">▲</button>
+        </div>
+
+        <div class="motor-buttons">
+            <button id="backward-button">◀</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <button id="stop-button">●</button>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            <button id="forward-button">▶</button>
+        </div>
+
+        <div class="motor-buttons">
+            <button id="left-button">▼</button>
+        </div>
+    </div>
+
+     
+
+    <input id="text-input" type="text" placeholder="Enter text">
+
+    <script>
+	// Function to send the control request to the server
+	function sendRequest(buttonValue, action) {
+	    fetch("/control", {
+		method: "POST",
+		headers: {
+		    "Content-Type": "application/x-www-form-urlencoded"
+		},
+		body: "button=" + buttonValue + "&action=" + action
+	    })
+	    .then(function(response) {
+		if (response.ok) {
+		    console.log("Control request sent successfully");
+		} else {
+		    console.log("Failed to send control request");
+		}
+	    })
+	    .catch(function(error) {
+		console.log("Error occurred while sending control request:", error);
+	    });
+	}
+
+	// Function to handle button press
+	function handleButtonPress(buttonValue) {
+	    sendRequest(buttonValue, "press");
+	}
+
+	// Function to handle button release
+	function handleButtonRelease(buttonValue) {
+	    sendRequest(buttonValue, "release");
+	}
+
+	// Add event listeners to the buttons
+	document.getElementById("forward-button").addEventListener("mousedown", function() {
+	    handleButtonPress("forward");
+	});
+
+	document.getElementById("forward-button").addEventListener("mouseup", function() {
+	    handleButtonRelease("forward");
+	});
+
+	document.getElementById("backward-button").addEventListener("mousedown", function() {
+	    handleButtonPress("backward");
+	});
+
+	document.getElementById("backward-button").addEventListener("mouseup", function() {
+	    handleButtonRelease("backward");
+	});
+
+	document.getElementById("left-button").addEventListener("mousedown", function() {
+	    handleButtonPress("left");
+	});
+
+	document.getElementById("left-button").addEventListener("mouseup", function() {
+	    handleButtonRelease("left");
+	});
+
+	document.getElementById("right-button").addEventListener("mousedown", function() {
+	    handleButtonPress("right");
+	});
+
+	document.getElementById("right-button").addEventListener("mouseup", function() {
+	    handleButtonRelease("right");
+	});
+
+	// Add event listeners to the text input field
+	// ...
+
+	// Rest of the code...
+
+
+
+        // Add event listeners to the text input field
+        document.getElementById("text-input").addEventListener("keydown", function(event) {
+            if (event.key === "Enter") {
+                var text = event.target.value;
+                fetch("/text", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/x-www-form-urlencoded"
+                    },
+                    body: "text=" + text
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        console.log("Text request sent successfully");
+                    } else {
+                        console.log("Failed to send text request");
+                    }
+                })
+                .catch(function(error) {
+                    console.log("Error occurred while sending text request:", error);
+                });
+            }
+        });
+
+     
+        
+
+     
+    </script>
+</body>
+</html>
