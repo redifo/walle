@@ -82,19 +82,36 @@ def run_code():
     except Exception as e:
         log(f"Exception in run_code: {e}")
 
+def check_server_running():
+    try:
+        response = requests.get("http://localhost:5000")
+        if response.status_code == 200:
+            log("Server is running as expected.")
+            return True
+        else:
+            log("Server is not running as expected.")
+            return False
+    except requests.ConnectionError:
+        log("Server is not running (connection error).")
+        return False
+    except Exception as e:
+        log(f"Exception in check_server_running: {e}")
+        return False
+
 if __name__ == "__main__":
     log("Starting update and run script.")
     first_run = True
     while True:
         try:
             rotate_logs()
-            if update_repo():
-                log("Updates detected, running code.")
-                run_code()
-            elif first_run:
-                log("First run, starting server.py.")
+            if update_repo() or first_run:
+                log("Starting or restarting server due to updates or first run.")
                 run_code()
                 first_run = False
+
+            if not check_server_running():
+                log("Server is not running properly, attempting to restart.")
+                run_code()
         except Exception as e:
             log(f"Exception in main loop: {e}")
         time.sleep(CHECK_INTERVAL)
