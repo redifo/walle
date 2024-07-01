@@ -7,13 +7,13 @@ from PIL import Image, ImageDraw, ImageFont
 import RPi.GPIO as GPIO
 import threading
 import picamera
-from smbus2 import smbus # for servo second i2c 
 
+# Suppress GPIO warnings
 GPIO.setwarnings(False)
 
 # I2C setup for GPIO 0 and 1
 I2C_BUS = 3
-bus = smbus.SMBus(I2C_BUS)
+bus = SMBus(I2C_BUS)
 SERVO_CONTROLLER_ADDR = 0x40  # Update with your servo controller's I2C address
 
 # Servo control functions
@@ -22,9 +22,8 @@ def set_servo(channel, position):
     position = max(0, min(180, position))
     # Convert position to PWM value (example range, adjust based on your servos)
     pwm_value = int(position * 4096 / 180)  # Assuming position is in degrees
-    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x06 + 4*channel, pwm_value & 0xFF)
-    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x07 + 4*channel, pwm_value >> 8)
-
+    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
+    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
 
 # Define global variables to track button states
 button_states = {
@@ -53,23 +52,17 @@ GPIO.setup(IN2_PIN, GPIO.OUT)
 GPIO.setup(IN3_PIN, GPIO.OUT)
 GPIO.setup(IN4_PIN, GPIO.OUT)
 
-
-
 # Create PWM objects for controlling the motor speed
 pwm_a = GPIO.PWM(ENA_PIN, 100)  # PWM frequency is set to 100 Hz
 pwm_b = GPIO.PWM(ENB_PIN, 100)  # PWM frequency is set to 100 Hz
 
 app = Flask(__name__, template_folder='templates')
 
-# Initialize I2C bus
-bus = SMBus(1)
-
 # Initialize the OLED display
 display = Adafruit_SSD1306.SSD1306_128_64(rst=None)
 display.begin()
 display.clear()
 display.display()
-
 
 def control_motors(left_speed, right_speed):
     # Convert the speed values (-100 to 100) to a PWM duty cycle (0 to 100)
@@ -95,20 +88,15 @@ def control_motors(left_speed, right_speed):
     pwm_a.start(duty_a)
     pwm_b.start(duty_b)
 
-
 def stop_motors():
     # Stop the PWM
     pwm_a.stop()
     pwm_b.stop()
 
-
-
-
 # Route for the index page
 @app.route('/')
 def index():
     return render_template('index.html')
-
 
 # Create a blank image with the same dimensions as the display
 image = Image.new('1', (display.width, display.height))
@@ -121,7 +109,6 @@ draw = ImageDraw.Draw(image)
 
 @app.route('/video_feed')
 def video_feed():
-   
     return Response(camera.generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 class Camera:
@@ -156,7 +143,7 @@ class Camera:
                 
                 # Wait for a short time before capturing the next frame
                 time.sleep(0.1)
-                
+
 # Function to display text on the screen
 def display_text(text):
     # Clear the image
@@ -176,53 +163,51 @@ def display_text(text):
     display.image(image)
     display.display()
 
-
 @app.route('/control', methods=['POST'])
 def control():
-    slider = request.form['slider']
-    value = int(request.form['value'])
+    slider = request.form.get('slider')
+    value = request.form.get('value')
 
-    if slider == "head":
-        set_servo(0, value)
-    elif slider == "neck":
-        set_servo(1, value)
-    elif slider == "left_eye":
-        set_servo(2, value)
-    elif slider == "right_eye":
-        set_servo(3, value)
-    elif slider == "left_arm":
-        set_servo(4, value)
-    elif slider == "right_arm":
-        set_servo(5, value)
-	    
+    if slider and value is not None:
+        value = int(value)
+        if slider == "head":
+            set_servo(0, value)
+        elif slider == "neck":
+            set_servo(1, value)
+        elif slider == "left_eye":
+            set_servo(2, value)
+        elif slider == "right_eye":
+            set_servo(3, value)
+        elif slider == "left_arm":
+            set_servo(4, value)
+        elif slider == "right_arm":
+            set_servo(5, value)
+
     button = request.form.get('button')
     action = request.form.get('action')
+
+    speed = 100
 
     if button == 'stop':
         # Code to stop the motors
         stop_motors()
         return 'Motors stopped'
 
-    speed=100
-    
     if button == 'forward':
         if action == 'press':
             control_motors(speed, speed)
         elif action == 'release':
             stop_motors()
-
     elif button == 'backward':
         if action == 'press':
             control_motors(-speed, -speed)
         elif action == 'release':
             stop_motors()
-
     elif button == 'left':
         if action == 'press':
             control_motors(-speed, speed)
         elif action == 'release':
             stop_motors()
-
     elif button == 'right':
         if action == 'press':
             control_motors(speed, -speed)
@@ -231,10 +216,14 @@ def control():
 
     return 'OK'
 
-
-
+@app.route('/text', methods=['POST'])
+def handle_text():
+    text = request.form['text']
+    # Handle the text input
+    display_text(text)
+    return 'OK'
 
 if __name__ == '__main__':
-	camera = Camera()  # Create an instance of the Camera class
-	camera.start_stream()  # Start the camera stream
-	app.run(host='0.0.0.0', port=5000, threaded=True)
+    camera = Camera()  # Create an instance of the Camera class
+    camera.start_stream()  # Start the camera stream
+    app.run(host='0.0.0.0', port=5000, threaded=True)
