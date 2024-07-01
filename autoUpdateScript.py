@@ -1,15 +1,32 @@
 import os
 import subprocess
 import time
+from datetime import datetime, timedelta
 
 # Configuration
 GIT_REPO = "https://github.com/redifo/walle"
 LOCAL_REPO_PATH = "/home/walle/Desktop/repo"
+LOG_FILE_PATH = "/home/walle/Desktop/repo/cron_script.log"
+SERVER_LOG_FILE_PATH = "/home/walle/Desktop/repo/server_output.log"
 CHECK_INTERVAL = 60  # Check every 60 seconds
+LOG_ROTATION_INTERVAL = timedelta(days=1)  # Rotate logs daily
+
+# Initialize last rotation time
+last_rotation_time = datetime.now()
 
 def log(message):
-    with open("/home/walle/Desktop/repo/cron_script.log", "a") as log_file:
-        log_file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+    with open(LOG_FILE_PATH, "a") as log_file:
+        log_file.write(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
+
+def rotate_logs():
+    global last_rotation_time
+    current_time = datetime.now()
+    if current_time - last_rotation_time >= LOG_ROTATION_INTERVAL:
+        for file_path in [LOG_FILE_PATH, SERVER_LOG_FILE_PATH]:
+            if os.path.exists(file_path):
+                os.rename(file_path, f"{file_path}.{current_time.strftime('%Y%m%d%H%M%S')}")
+        last_rotation_time = current_time
+        log("Log files rotated.")
 
 def update_repo():
     try:
@@ -60,17 +77,17 @@ def update_repo():
 def run_code():
     try:
         log("Starting server.py.")
-        with open("/home/walle/Desktop/repo/server_output.log", "a") as out_log:
+        with open(SERVER_LOG_FILE_PATH, "a") as out_log:
             subprocess.Popen(["python3", os.path.join(LOCAL_REPO_PATH, "server.py")], stdout=out_log, stderr=out_log)
     except Exception as e:
         log(f"Exception in run_code: {e}")
-
 
 if __name__ == "__main__":
     log("Starting update and run script.")
     first_run = True
     while True:
         try:
+            rotate_logs()
             if update_repo():
                 log("Updates detected, running code.")
                 run_code()
