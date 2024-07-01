@@ -3,6 +3,7 @@ import subprocess
 import time
 from datetime import datetime, timedelta
 import requests
+
 # Configuration
 GIT_REPO = "https://github.com/redifo/walle"
 LOCAL_REPO_PATH = "/home/walle/Desktop/repo"
@@ -10,6 +11,7 @@ LOG_FILE_PATH = "/home/walle/Desktop/repo/cron_script.log"
 SERVER_LOG_FILE_PATH = "/home/walle/Desktop/repo/server_output.log"
 CHECK_INTERVAL = 60  # Check every 60 seconds
 LOG_ROTATION_INTERVAL = timedelta(days=1)  # Rotate logs daily
+LOCK_FILE = "/tmp/autoUpdateScript.lock"
 
 # Initialize last rotation time
 last_rotation_time = datetime.now()
@@ -76,6 +78,8 @@ def update_repo():
 
 def run_code():
     try:
+        if os.path.exists(SERVER_LOG_FILE_PATH):
+            os.remove(SERVER_LOG_FILE_PATH)  # Delete the old server log file
         log("Starting server.py.")
         with open(SERVER_LOG_FILE_PATH, "a") as out_log:
             subprocess.Popen(["python3", os.path.join(LOCAL_REPO_PATH, "server.py")], stdout=out_log, stderr=out_log)
@@ -98,11 +102,29 @@ def check_server_running():
         log(f"Exception in check_server_running: {e}")
         return False
 
+def create_lock():
+    if os.path.exists(LOCK_FILE):
+        log("Another instance is running. Exiting.")
+        return False
+    else:
+        with open(LOCK_FILE, 'w') as lock_file:
+            lock_file.write(str(os.getpid()))
+        log("Lock file created.")
+        return True
+
+def remove_lock():
+    if os.path.exists(LOCK_FILE):
+        os.remove(LOCK_FILE)
+        log("Lock file removed.")
+
 if __name__ == "__main__":
+    if not create_lock():
+        exit(1)
+
     log("Starting update and run script.")
     first_run = True
-    while True:
-        try:
+    try:
+        while True:
             rotate_logs()
             if update_repo() or first_run:
                 log("Starting or restarting server due to updates or first run.")
@@ -112,6 +134,9 @@ if __name__ == "__main__":
             if not check_server_running():
                 log("Server is not running properly, attempting to restart.")
                 run_code()
-        except Exception as e:
-            log(f"Exception in main loop: {e}")
-        time.sleep(CHECK_INTERVAL)
+            
+            time.sleep(CHECK_INTERVAL)
+    except Exception as e:
+        log(f"Exception in main loop: {e}")
+    finally:
+        remove_lock()
