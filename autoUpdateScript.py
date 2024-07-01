@@ -37,7 +37,7 @@ def update_repo():
 
             if changes.stdout:
                 log("Changes detected, pulling updates.")
-                pull_result = subprocess.run(["git", "-C", LOCAL_REPO_PATH, "pull"], capture_output=True, text=True)
+                pull_result = subprocess.run(["git", "-C", LOCAL_REPO_PATH, "pull", "--rebase=false"], capture_output=True, text=True)
                 if pull_result.returncode == 0:
                     log("Updates pulled successfully.")
                     return True  # New changes pulled, need to run
