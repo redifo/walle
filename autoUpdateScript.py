@@ -28,6 +28,12 @@ def update_repo():
             if result.returncode != 0:
                 log(f"Error fetching updates: {result.stderr}")
                 return False
+                
+            log("Resetting local changes.")
+            result = subprocess.run(["git", "-C", LOCAL_REPO_PATH, "reset", "--hard", "origin/main"], capture_output=True, text=True)
+            if result.returncode != 0:
+                log(f"Error resetting local changes: {result.stderr}")
+                return False
 
             log("Checking for changes.")
             changes = subprocess.run(["git", "-C", LOCAL_REPO_PATH, "diff", "HEAD", "origin/main"], capture_output=True, text=True)
