@@ -14,24 +14,16 @@ GPIO.setwarnings(False)
 # I2C setup for GPIO 0 and 1
 I2C_BUS = 3
 bus = SMBus(I2C_BUS)
-SERVO_CONTROLLER_ADDR = 0x40  # Update with your servo controller's I2C address
+SERVO_CONTROLLER_ADDR = 0x40  # Verify the I2C address for your servo controller
 
 # Servo control functions
 def set_servo(channel, position):
     # Clamp position to 0-180 degrees
     position = max(0, min(180, position))
-    # Convert position to PWM value (example range, adjust based on your servos)
-    pwm_value = int(position * 4096 / 180)  # Assuming position is in degrees
-    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
-    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
-
-# Define global variables to track button states
-button_states = {
-    'forward': False,
-    'backward': False,
-    'left': False,
-    'right': False
-}
+    # Convert position to PWM value (0-4095 range for PCA9685)
+    pwm_value = int((position / 180) * 4095)
+    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
+    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
 
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
