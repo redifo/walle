@@ -7,8 +7,24 @@ from PIL import Image, ImageDraw, ImageFont
 import RPi.GPIO as GPIO
 import threading
 import picamera
+from smbus2 import smbus # for servo second i2c 
 
 GPIO.setwarnings(False)
+
+# I2C setup for GPIO 0 and 1
+I2C_BUS = 3
+bus = smbus.SMBus(I2C_BUS)
+SERVO_CONTROLLER_ADDR = 0x40  # Update with your servo controller's I2C address
+
+# Servo control functions
+def set_servo(channel, position):
+    # Clamp position to 0-180 degrees
+    position = max(0, min(180, position))
+    # Convert position to PWM value (example range, adjust based on your servos)
+    pwm_value = int(position * 4096 / 180)  # Assuming position is in degrees
+    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x06 + 4*channel, pwm_value & 0xFF)
+    bus.write_byte_data(SERVO_CONTROLLER_ADDR, 0x07 + 4*channel, pwm_value >> 8)
+
 
 # Define global variables to track button states
 button_states = {
@@ -163,6 +179,22 @@ def display_text(text):
 
 @app.route('/control', methods=['POST'])
 def control():
+    slider = request.form['slider']
+    value = int(request.form['value'])
+
+    if slider == "head":
+        set_servo(0, value)
+    elif slider == "neck":
+        set_servo(1, value)
+    elif slider == "left_eye":
+        set_servo(2, value)
+    elif slider == "right_eye":
+        set_servo(3, value)
+    elif slider == "left_arm":
+        set_servo(4, value)
+    elif slider == "right_arm":
+        set_servo(5, value)
+	    
     button = request.form.get('button')
     action = request.form.get('action')
 
