@@ -2,7 +2,7 @@ import os
 import subprocess
 import time
 from datetime import datetime, timedelta
-
+import requests
 # Configuration
 GIT_REPO = "https://github.com/redifo/walle"
 LOCAL_REPO_PATH = "/home/walle/Desktop/repo"
