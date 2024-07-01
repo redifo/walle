@@ -54,9 +54,11 @@ def update_repo():
 def run_code():
     try:
         log("Starting server.py.")
-        subprocess.Popen(["python3", os.path.join(LOCAL_REPO_PATH, "server.py")])
+        with open("/home/walle/Desktop/repo/server_output.log", "a") as out_log:
+            subprocess.Popen(["python3", os.path.join(LOCAL_REPO_PATH, "server.py")], stdout=out_log, stderr=out_log)
     except Exception as e:
         log(f"Exception in run_code: {e}")
+
 
 if __name__ == "__main__":
     log("Starting update and run script.")
