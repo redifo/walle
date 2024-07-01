@@ -8,7 +8,8 @@ LOCAL_REPO_PATH = "/home/walle/Desktop/repo"
 CHECK_INTERVAL = 60  # Check every 60 seconds
 
 def log(message):
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}")
+    with open("/home/walle/Desktop/repo/cron_script.log", "a") as log_file:
+        log_file.write(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {message}\n")
 
 def update_repo():
     try:
@@ -52,8 +53,6 @@ def update_repo():
 
 def run_code():
     try:
-        log("Killing any existing instances of server.py.")
-        subprocess.run(["pkill", "-f", "server.py"])
         log("Starting server.py.")
         subprocess.Popen(["python3", os.path.join(LOCAL_REPO_PATH, "server.py")])
     except Exception as e:
@@ -61,10 +60,16 @@ def run_code():
 
 if __name__ == "__main__":
     log("Starting update and run script.")
+    first_run = True
     while True:
         try:
             if update_repo():
+                log("Updates detected, running code.")
                 run_code()
+            elif first_run:
+                log("First run, starting server.py.")
+                run_code()
+                first_run = False
         except Exception as e:
             log(f"Exception in main loop: {e}")
         time.sleep(CHECK_INTERVAL)
