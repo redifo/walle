@@ -69,25 +69,8 @@
             flex-direction: column;
         }
 
-        .control-buttons {
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: center;
+        .control-slider {
             margin-bottom: 20px;
-        }
-
-        .control-buttons button {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            border: none;
-            background-color: #ccc;
-            font-size: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
         }
     </style>
 </head>
@@ -113,29 +96,29 @@
     </div>
 
     <div id="additional-controls">
-        <div class="control-buttons" style="margin-top: 20px;">
-            <button id="head-left">← Head</button>&nbsp;&nbsp;&nbsp;
-            <button id="head-right">Head →</button>
+        <div class="control-slider">
+            <label for="head-slider">Head</label>
+            <input type="range" id="head-slider" min="0" max="180" value="90">
         </div>
-        <div class="control-buttons">
-            <button id="neck-up">↑ Neck</button>&nbsp;&nbsp;&nbsp;
-            <button id="neck-down">Neck ↓</button>
+        <div class="control-slider">
+            <label for="neck-slider">Neck</label>
+            <input type="range" id="neck-slider" min="0" max="180" value="90">
         </div>
-        <div class="control-buttons">
-            <button id="left-eye-up">↑ Left Eye</button>&nbsp;&nbsp;&nbsp;
-            <button id="left-eye-down">Left Eye ↓</button>
+        <div class="control-slider">
+            <label for="left-eye-slider">Left Eye</label>
+            <input type="range" id="left-eye-slider" min="0" max="180" value="90">
         </div>
-        <div class="control-buttons">
-            <button id="right-eye-up">↑ Right Eye</button>&nbsp;&nbsp;&nbsp;
-            <button id="right-eye-down">Right Eye ↓</button>
+        <div class="control-slider">
+            <label for="right-eye-slider">Right Eye</label>
+            <input type="range" id="right-eye-slider" min="0" max="180" value="90">
         </div>
-        <div class="control-buttons">
-            <button id="left-arm-up">↑ Left Arm</button>&nbsp;&nbsp;&nbsp;
-            <button id="left-arm-down">Left Arm ↓</button>
+        <div class="control-slider">
+            <label for="left-arm-slider">Left Arm</label>
+            <input type="range" id="left-arm-slider" min="0" max="180" value="90">
         </div>
-        <div class="control-buttons">
-            <button id="right-arm-up">↑ Right Arm</button>&nbsp;&nbsp;&nbsp;
-            <button id="right-arm-down">Right Arm ↓</button>
+        <div class="control-slider">
+            <label for="right-arm-slider">Right Arm</label>
+            <input type="range" id="right-arm-slider" min="0" max="180" value="90">
         </div>
     </div>
 
@@ -143,77 +126,40 @@
 
     <script>
         // Function to send the control request to the server
-        function sendRequest(buttonValue, action) {
+        function sendSliderValue(sliderName, value) {
             fetch("/control", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/x-www-form-urlencoded"
                 },
-                body: "button=" + buttonValue + "&action=" + action
+                body: "slider=" + sliderName + "&value=" + value
             })
             .then(function(response) {
                 if (response.ok) {
-                    console.log("Control request sent successfully");
+                    console.log("Slider value sent successfully");
                 } else {
-                    console.log("Failed to send control request");
+                    console.log("Failed to send slider value");
                 }
             })
             .catch(function(error) {
-                console.log("Error occurred while sending control request:", error);
+                console.log("Error occurred while sending slider value:", error);
             });
         }
 
-        // Function to handle button press
-        function handleButtonPress(buttonValue) {
-            sendRequest(buttonValue, "press");
-        }
-
-        // Function to handle button release
-        function handleButtonRelease(buttonValue) {
-            sendRequest(buttonValue, "release");
-        }
-
-        // Add event listeners to the buttons for both mouse and touch events
-        function addControlButtonEventListeners(buttonId, action) {
-            const button = document.getElementById(buttonId);
-            button.addEventListener("mousedown", function() {
-                handleButtonPress(action);
-            });
-            button.addEventListener("mouseup", function() {
-                handleButtonRelease(action);
-            });
-            button.addEventListener("touchstart", function() {
-                handleButtonPress(action);
-            });
-            button.addEventListener("touchend", function() {
-                handleButtonRelease(action);
-            });
-        }
-
-        // Motor control buttons
-        addControlButtonEventListeners("forward-button", "forward");
-        addControlButtonEventListeners("backward-button", "backward");
-        addControlButtonEventListeners("left-button", "left");
-        addControlButtonEventListeners("right-button", "right");
-
-        // New control buttons for head, neck, eyes, and arms
-        const controlButtons = [
-            {id: "head-left", action: "head-left"},
-            {id: "head-right", action: "head-right"},
-            {id: "neck-up", action: "neck-up"},
-            {id: "neck-down", action: "neck-down"},
-            {id: "left-eye-up", action: "left-eye-up"},
-            {id: "left-eye-down", action: "left-eye-down"},
-            {id: "right-eye-up", action: "right-eye-up"},
-            {id: "right-eye-down", action: "right-eye-down"},
-            {id: "left-arm-up", action: "left-arm-up"},
-            {id: "left-arm-down", action: "left-arm-down"},
-            {id: "right-arm-up", action: "right-arm-up"},
-            {id: "right-arm-down", action: "right-arm-down"}
+        // Add event listeners to the sliders
+        const sliders = [
+            {id: "head-slider", name: "head"},
+            {id: "neck-slider", name: "neck"},
+            {id: "left-eye-slider", name: "left_eye"},
+            {id: "right-eye-slider", name: "right_eye"},
+            {id: "left-arm-slider", name: "left_arm"},
+            {id: "right-arm-slider", name: "right_arm"}
         ];
 
-        controlButtons.forEach(button => {
-            addControlButtonEventListeners(button.id, button.action);
+        sliders.forEach(slider => {
+            document.getElementById(slider.id).addEventListener("input", function(event) {
+                sendSliderValue(slider.name, event.target.value);
+            });
         });
 
         // Add event listener to the text input field
