@@ -21,7 +21,7 @@ def transcribe_audio(api_key, recording, fs):
         temp_file.seek(0)
         
         with open(temp_file.name, "rb") as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file, api_key=api_key)
+            transcript = openai.Audio.transcribe("whisper-1", audio_file)
             return transcript['text'].lower()
 
 # Function to generate speech using OpenAI's text-to-speech API
@@ -29,7 +29,6 @@ def text_to_speech(api_key, text):
     response = openai.Audio.create(
         engine="text-davinci-002",
         text=text,
-        api_key=api_key
     )
     
     with open("response.mp3", "wb") as audio_file:
