@@ -1,10 +1,13 @@
 import os
 import openai
-import pygame
+import pyttsx3
 import time
 import sounddevice as sd
 from scipy.io.wavfile import write
 import tempfile
+
+# Initialize pyttsx3 engine
+engine = pyttsx3.init()
 
 # Function to record audio
 def record_audio(duration=5, fs=44100):
@@ -21,25 +24,16 @@ def transcribe_audio(api_key, recording, fs):
         temp_file.seek(0)
         
         with open(temp_file.name, "rb") as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file)
+            transcript = openai.Audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
             return transcript['text'].lower()
 
-# Function to generate speech using OpenAI's text-to-speech API
-def text_to_speech(api_key, text):
-    response = openai.Audio.create(
-        engine="text-davinci-002",
-        text=text,
-    )
-    
-    with open("response.mp3", "wb") as audio_file:
-        audio_file.write(response['data'])
-
-    pygame.mixer.init()
-    pygame.mixer.music.load("response.mp3")
-    pygame.mixer.music.set_volume(1.0)
-    pygame.mixer.music.play()
-    while pygame.mixer.music.get_busy():
-        time.sleep(1)
+# Function to generate speech using pyttsx3
+def text_to_speech(text):
+    engine.say(text)
+    engine.runAndWait()
 
 # Function to get response from ChatGPT
 def get_chatgpt_response(api_key, input_text):
@@ -99,7 +93,7 @@ def main():
             
             # Determine the language of the response (Turkish or English)
             lang = 'tr' if keyword_tr in input_text else 'en'
-            text_to_speech(api_key, response)
+            text_to_speech(response)
 
 if __name__ == "__main__":
     main()
