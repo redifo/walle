@@ -2,41 +2,30 @@ import os
 import openai
 import pygame
 import time
+import sounddevice as sd
+from scipy.io.wavfile import write
+import tempfile
 
-def listen_microphone(api_key, keyword_en, keyword_tr):
-    import sounddevice as sd
-    from scipy.io.wavfile import write
-    import tempfile
+# Function to record audio
+def record_audio(duration=5, fs=44100):
+    print("Recording...")
+    recording = sd.rec(int(duration * fs), samplerate=fs, channels=2)
+    sd.wait()  # Wait until recording is finished
+    print("Finished recording")
+    return recording, fs
 
-    # Record audio
-    fs = 44100  # Sample rate
-    seconds = 5  # Duration of recording
-    print("Listening for keyword...")
-    
-    while True:
-        print("Recording...")
-        recording = sd.rec(int(seconds * fs), samplerate=fs, channels=2)
-        sd.wait()  # Wait until recording is finished
-        print("Finished recording")
+# Function to transcribe audio using OpenAI API
+def transcribe_audio(api_key, recording, fs):
+    with tempfile.NamedTemporaryFile(suffix=".wav") as temp_file:
+        write(temp_file.name, fs, recording)
+        temp_file.seek(0)
         
-        # Save the recording to a temporary file
-        with tempfile.NamedTemporaryFile(suffix=".wav") as temp_file:
-            write(temp_file.name, fs, recording)
-            temp_file.seek(0)
-            
-            # Transcribe audio using OpenAI API
-            with open(temp_file.name, "rb") as audio_file:
-                transcript = openai.Audio.transcribe("whisper-1", audio_file, api_key=api_key)
-                
-                text = transcript['text'].lower()
-                print("You said:", text)
-                if keyword_en in text:
-                    return text
-                if keyword_tr in text:
-                    return text
+        with open(temp_file.name, "rb") as audio_file:
+            transcript = openai.Audio.transcribe("whisper-1", audio_file, api_key=api_key)
+            return transcript['text'].lower()
 
+# Function to generate speech using OpenAI's text-to-speech API
 def text_to_speech(api_key, text):
-    # Generate speech using OpenAI's text-to-speech API
     response = openai.Audio.create(
         engine="text-davinci-002",
         text=text,
@@ -53,6 +42,7 @@ def text_to_speech(api_key, text):
     while pygame.mixer.music.get_busy():
         time.sleep(1)
 
+# Function to get response from ChatGPT
 def get_chatgpt_response(api_key, input_text):
     openai.api_key = api_key
     response = openai.ChatCompletion.create(
@@ -81,12 +71,31 @@ def main():
         print("API key not found. Please set the OPENAI_API_KEY environment variable.")
         return
 
-    keyword_en = "hello"
+    keyword_en = "walle"
     keyword_tr = "merhaba"
+    stop_keyword = "bye walle"
     
     while True:
-        input_text = listen_microphone(api_key, keyword_en, keyword_tr)
-        if input_text:
+        input_text = ""
+        
+        # Listening for activation keyword
+        while not (keyword_en in input_text or keyword_tr in input_text):
+            recording, fs = record_audio()
+            input_text = transcribe_audio(api_key, recording, fs)
+            print("You said:", input_text)
+
+        print("Activated. Listening for commands...")
+
+        # Activated, listen and respond until stop keyword is heard
+        while True:
+            recording, fs = record_audio()
+            input_text = transcribe_audio(api_key, recording, fs)
+            print("You said:", input_text)
+            
+            if stop_keyword in input_text:
+                print("Deactivated.")
+                break
+
             response = get_chatgpt_response(api_key, input_text)
             
             # Determine the language of the response (Turkish or English)
