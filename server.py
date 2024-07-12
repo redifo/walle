@@ -24,7 +24,7 @@ def set_servo(channel, position):
     pwm_value = int((position / 180) * 4095)
     bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
     bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
-
+#deneme
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
 ENB_PIN = 13  # Enable pin for Motor B
