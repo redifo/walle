@@ -7,23 +7,28 @@ from PIL import Image, ImageDraw, ImageFont
 import RPi.GPIO as GPIO
 import threading
 import picamera
+from adafruit_pca9685 import PCA9685
+from board import SCL, SDA
+import busio
+
+
+# Replace the existing font line with:
+font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)  # Tripled from default size 12
 
 # Suppress GPIO warnings
 GPIO.setwarnings(False)
 
 # I2C setup for GPIO 0 and 1
 I2C_BUS = 3
-bus = SMBus(I2C_BUS)
-SERVO_CONTROLLER_ADDR = 0x40  # Verify the I2C address for your servo controller
+i2c = busio.I2C(SCL, SDA)
+pca = PCA9685(i2c, address=0x40)
+pca.frequency = 50  # Set PWM frequency to 50Hz
 
 # Servo control functions
 def set_servo(channel, position):
-    # Clamp position to 0-180 degrees
     position = max(0, min(180, position))
-    # Convert position to PWM value (0-4095 range for PCA9685)
-    pwm_value = int((position / 180) * 4095)
-    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
-    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
+    pulse = int(((position / 180) * (2500 - 500)) + 500)  # Convert 0-180 to pulse width
+    pca.channels[channel].duty_cycle = int((pulse * 65535) / 20000)  # Convert to 16-bit duty cycle
 
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
@@ -157,27 +162,6 @@ def display_text(text):
 
 @app.route('/control', methods=['POST'])
 def control():
-    slider = request.form.get('slider')
-    value = request.form.get('value')
-
-    if slider and value is not None:
-        value = int(value)
-        if slider == "head":
-            set_servo(0, value)
-        elif slider == "neck":
-            set_servo(1, value)
-        elif slider == "left_eye":
-            set_servo(2, value)
-        elif slider == "right_eye":
-            set_servo(3, value)
-        elif slider == "left_arm":
-            set_servo(4, value)
-        elif slider == "right_arm":
-            set_servo(5, value)
-
-    button = request.form.get('button')
-    action = request.form.get('action')
-
     speed = 100
 
     if button == 'stop':
@@ -206,6 +190,26 @@ def control():
         elif action == 'release':
             stop_motors()
 
+    slider = request.form.get('slider')
+    value = request.form.get('value')
+
+    if slider and value is not None:
+        value = int(value)
+        if slider == "head":
+            set_servo(0, value)
+        elif slider == "neck":
+            set_servo(1, value)
+        elif slider == "left_eye":
+            set_servo(2, value)
+        elif slider == "right_eye":
+            set_servo(3, value)
+        elif slider == "left_arm":
+            set_servo(4, value)
+        elif slider == "right_arm":
+            set_servo(5, value)
+
+    button = request.form.get('button')
+    action = request.form.get('action')
     return 'OK'
 
 @app.route('/text', methods=['POST'])
