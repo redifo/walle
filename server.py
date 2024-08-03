@@ -27,9 +27,11 @@ pca.frequency = 50  # Set PWM frequency to 50Hz
 # Servo control functions
 def set_servo(channel, position):
     position = max(0, min(180, position))
-    pulse = int(((position / 180) * (2500 - 500)) + 500)  # Convert 0-180 to pulse width
-    pca.channels[channel].duty_cycle = int((pulse * 65535) / 20000)  # Convert to 16-bit duty cycle
-
+    # Convert position to PWM value (0-4095 range for PCA9685)
+    pwm_value = int((position / 180) * 4095)
+    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
+    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
+#deneme
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
 ENB_PIN = 13  # Enable pin for Motor B
