@@ -96,55 +96,61 @@
     </div>
 
     <div id="additional-controls">
-        <div class="control-slider">
-            <label for="head-slider">Head</label>
-            <input type="range" id="head-slider" min="0" max="180" value="90">
-        </div>
-        <div class="control-slider">
-            <label for="neck-slider">Neck</label>
-            <input type="range" id="neck-slider" min="0" max="180" value="90">
-        </div>
-        <div class="control-slider">
-            <label for="left-eye-slider">Left Eye</label>
-            <input type="range" id="left-eye-slider" min="0" max="180" value="90">
-        </div>
-        <div class="control-slider">
-            <label for="right-eye-slider">Right Eye</label>
-            <input type="range" id="right-eye-slider" min="0" max="180" value="90">
-        </div>
-        <div class="control-slider">
-            <label for="left-arm-slider">Left Arm</label>
-            <input type="range" id="left-arm-slider" min="0" max="180" value="90">
-        </div>
-        <div class="control-slider">
-            <label for="right-arm-slider">Right Arm</label>
-            <input type="range" id="right-arm-slider" min="0" max="180" value="90">
-        </div>
+    <div class="control-slider">
+        <label for="head-slider">Head</label>
+        <input type="range" id="head-slider" min="0" max="180" value="90" 
+               oninput="sendSliderValue('head-slider', this.value)">
     </div>
+    <div class="control-slider">
+        <label for="neck-slider">Neck</label>
+        <input type="range" id="neck-slider" min="0" max="180" value="90"
+               oninput="sendSliderValue('neck-slider', this.value)">
+    </div>
+    <div class="control-slider">
+        <label for="left-eye-slider">Left Eye</label>
+        <input type="range" id="left-eye-slider" min="0" max="180" value="90"
+               oninput="sendSliderValue('left-eye-slider', this.value)">
+    </div>
+    <div class="control-slider">
+        <label for="right-eye-slider">Right Eye</label>
+        <input type="range" id="right-eye-slider" min="0" max="180" value="90"
+               oninput="sendSliderValue('right-eye-slider', this.value)">
+    </div>
+    <div class="control-slider">
+        <label for="left-arm-slider">Left Arm</label>
+        <input type="range" id="left-arm-slider" min="0" max="180" value="90"
+               oninput="sendSliderValue('left-arm-slider', this.value)">
+    </div>
+    <div class="control-slider">
+        <label for="right-arm-slider">Right Arm</label>
+        <input type="range" id="right-arm-slider" min="0" max="180" value="90"
+               oninput="sendSliderValue('right-arm-slider', this.value)">
+    </div>
+</div>
 
     <input id="text-input" type="text" placeholder="Enter text">
 
     <script>
         // Function to send the control request to the server
         function sendSliderValue(sliderName, value) {
-            fetch("/control", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded"
-                },
-                body: "slider=" + sliderName + "&value=" + value
-            })
-            .then(function(response) {
-                if (response.ok) {
-                    console.log("Slider value sent successfully");
-                } else {
-                    console.log("Failed to send slider value");
-                }
-            })
-            .catch(function(error) {
-                console.log("Error occurred while sending slider value:", error);
-            });
-        }
+        fetch("/control", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded"
+            },
+            body: "slider=" + sliderName + "&value=" + value
+        })
+        .then(function(response) {
+            if (response.ok) {
+                console.log("Slider value sent successfully");
+            } else {
+                console.log("Failed to send slider value");
+            }
+        })
+        .catch(function(error) {
+            console.log("Error occurred while sending slider value:", error);
+        });
+    }
 
         // Add event listeners to the sliders
         const sliders = [
