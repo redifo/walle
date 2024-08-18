@@ -1,25 +1,23 @@
 from flask import Flask, render_template, request, Response
 import io
-from smbus import SMBus
 import time
-import Adafruit_SSD1306
-from PIL import Image, ImageDraw, ImageFont
 import RPi.GPIO as GPIO
 import threading
 import picamera
 from adafruit_pca9685 import PCA9685
 from board import SCL, SDA
 import busio
+import ST7789 as ST7789  
+from PIL import Image, ImageDraw, ImageFont
 
 
-# Replace the existing font line with:
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)  # Tripled from default size 12
 
 # Suppress GPIO warnings
 GPIO.setwarnings(False)
 
-# I2C setup for GPIO 0 and 1
-I2C_BUS = 3
+# I2C setup for GPIO 2 and 3 (default I2C bus 1)
+I2C_BUS = 1
 i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c, address=0x40)
 pca.frequency = 50  # Set PWM frequency to 50Hz
@@ -29,9 +27,8 @@ def set_servo(channel, position):
     position = max(0, min(180, position))
     # Convert position to PWM value (0-4095 range for PCA9685)
     pwm_value = int((position / 180) * 4095)
-    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x06 + 4 * channel, pwm_value & 0xFF)
-    bus.write_word_data(SERVO_CONTROLLER_ADDR, 0x07 + 4 * channel, pwm_value >> 8)
-#deneme
+    pca.channels[channel].duty_cycle = pwm_value
+
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
 ENB_PIN = 13  # Enable pin for Motor B
@@ -57,11 +54,22 @@ pwm_b = GPIO.PWM(ENB_PIN, 100)  # PWM frequency is set to 100 Hz
 
 app = Flask(__name__, template_folder='templates')
 
-# Initialize the OLED display
-display = Adafruit_SSD1306.SSD1306_128_64(rst=None)
-display.begin()
-display.clear()
-display.display()
+# Initialize the ST7789 display (SPI)
+RST_PIN = 25  # Reset pin for ST7789
+DC_PIN = 8  # Data/Command pin for ST7789
+SPI_PORT = 0  # SPI port (0 for /dev/spidev0.0)
+SPI_DEVICE = 0  # SPI device (0 for /dev/spidev0.0)
+spi_speed_hz = 40000000  # 40MHz SPI speed
+
+disp = ST7789.ST7789(
+    SPI_PORT,
+    SPI_DEVICE,
+    rst=RST_PIN,
+    dc=DC_PIN,
+    spi_speed_hz=spi_speed_hz
+)
+
+disp.begin()
 
 def control_motors(left_speed, right_speed):
     # Convert the speed values (-100 to 100) to a PWM duty cycle (0 to 100)
@@ -96,15 +104,6 @@ def stop_motors():
 @app.route('/')
 def index():
     return render_template('index.html')
-
-# Create a blank image with the same dimensions as the display
-image = Image.new('1', (display.width, display.height))
-
-# Load a font (you can change the font file and size as per your preference)
-font = ImageFont.load_default()
-
-# Create a draw object to draw on the image
-draw = ImageDraw.Draw(image)
 
 @app.route('/video_feed')
 def video_feed():
@@ -143,28 +142,50 @@ class Camera:
                 # Wait for a short time before capturing the next frame
                 time.sleep(0.1)
 
-# Function to display text on the screen
+# Function to display text on the ST7789 screen
 def display_text(text):
-    # Clear the image
-    draw.rectangle((0, 0, display.width, display.height), outline=0, fill=0)
+    # Create a blank image with the same dimensions as the display
+    width, height = disp.width, disp.height
+    image = Image.new('RGB', (width, height), color=(0, 0, 0))
+    draw = ImageDraw.Draw(image)
 
     # Calculate the width and height of the text
     text_width, text_height = draw.textsize(text, font=font)
 
     # Calculate the position to center the text on the screen
-    x = (display.width - text_width) // 2
-    y = (display.height - text_height) // 2
+    x = (width - text_width) // 2
+    y = (height - text_height) // 2
 
     # Draw the text on the image
-    draw.text((x, y), text, font=font, fill=255)
+    draw.text((x, y), text, font=font, fill=(255, 255, 255))
 
     # Display the image on the screen
-    display.image(image)
-    display.display()
+    disp.display(image)
 
 @app.route('/control', methods=['POST'])
 def control():
     speed = 100
+
+    slider = request.form.get('slider')
+    value = request.form.get('value')
+
+    if slider and value is not None:
+        value = int(value)
+        if slider == "head":
+            set_servo(0, value)
+        elif slider == "neck":
+            set_servo(1, value)
+        elif slider == "left_eye":
+            set_servo(2, value)
+        elif slider == "right_eye":
+            set_servo(3, value)
+        elif slider == "left_arm":
+            set_servo(4, value)
+        elif slider == "right_arm":
+            set_servo(5, value)
+
+    button = request.form.get('button')
+    action = request.form.get('action')
 
     if button == 'stop':
         # Code to stop the motors
@@ -192,26 +213,6 @@ def control():
         elif action == 'release':
             stop_motors()
 
-    slider = request.form.get('slider')
-    value = request.form.get('value')
-
-    if slider and value is not None:
-        value = int(value)
-        if slider == "head":
-            set_servo(0, value)
-        elif slider == "neck":
-            set_servo(1, value)
-        elif slider == "left_eye":
-            set_servo(2, value)
-        elif slider == "right_eye":
-            set_servo(3, value)
-        elif slider == "left_arm":
-            set_servo(4, value)
-        elif slider == "right_arm":
-            set_servo(5, value)
-
-    button = request.form.get('button')
-    action = request.form.get('action')
     return 'OK'
 
 @app.route('/text', methods=['POST'])
