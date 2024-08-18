@@ -22,8 +22,8 @@ i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c, address=0x40)
 pca.frequency = 50  # Set PWM frequency to 50Hz
 
- Constants
-nbPCAServo = 7  # Number of servos being controlled (7 in this case)
+# Constants
+nbPCAServo = 7  # Number of servos being controlled 
 
 # Initialize PCA9685 (16-channel PWM driver)
 pca = ServoKit(channels=16)
