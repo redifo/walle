@@ -22,12 +22,36 @@ i2c = busio.I2C(SCL, SDA)
 pca = PCA9685(i2c, address=0x40)
 pca.frequency = 50  # Set PWM frequency to 50Hz
 
-# Servo control functions
-def set_servo(channel, position):
-    position = max(0, min(180, position))
-    # Convert position to PWM value (0-4095 range for PCA9685)
-    pwm_value = int((position / 180) * 4095)
-    pca.channels[channel].duty_cycle = pwm_value
+ Constants
+nbPCAServo = 7  # Number of servos being controlled (7 in this case)
+
+# Initialize PCA9685 (16-channel PWM driver)
+pca = ServoKit(channels=16)
+
+# Servo Control Parameters
+curpos = [248, 560, 140, 475, 270, 250, 290]  # Current position (units)
+setpos = [248, 560, 140, 475, 270, 250, 290]  # Required position (units)
+curvel = [0, 0, 0, 0, 0, 0, 0]  # Current velocity (units/sec)
+maxvel = [500, 400, 500, 2400, 2400, 600, 600]  # Max Servo velocity (units/sec)
+accell = [350, 300, 480, 1800, 1800, 500, 500]  # Servo acceleration (units/sec^2)
+
+# Function to initialize servos
+def init_servos():
+    for i in range(nbPCAServo):
+        pca.servo[i].set_pulse_width_range(500, 2500)  # Set pulse width range for all servos
+
+# Function to control servos based on position values from the web interface
+def control_servos(positions):
+    for i in range(nbPCAServo):
+        required_position = positions[i]
+        
+        if 0 <= required_position <= 180:  # Ensure the value is within the valid range
+            # Control the servo to move to the required position
+            pca.servo[i].angle = required_position
+            time.sleep(0.01)  # Adjust sleep time for smoother movement
+            
+            # Update the current position after movement
+            curpos[i] = required_position
 
 # Define motor control GPIO pins
 ENA_PIN = 12  # Enable pin for Motor A
@@ -163,27 +187,30 @@ def display_text(text):
     disp.display(image)
 
 @app.route('/control', methods=['POST'])
+def control_servos_endpoint():
+    # Mapping of slider names to servo indices
+    slider_map = {
+        'head-slider': 0,
+        'neck-slider': 1,
+        'left-eye-slider': 2,
+        'right-eye-slider': 3,
+        'left-arm-slider': 4,
+        'right-arm-slider': 5,
+    }
+    
+    # Retrieve the slider name and value from the request
+    slider = request.form.get('slider')
+    value = request.form.get('value', type=int)
+    
+    # Determine the servo channel from the slider name
+    if slider in slider_map:
+        channel = slider_map[slider]
+        control_servos([value if i == channel else curpos[i] for i in range(nbPCAServo)])
+
+    return 'Servos controlled successfully!'
+    
 def control():
     speed = 100
-
-    slider = request.form.get('slider')
-    value = request.form.get('value')
-
-    if slider and value is not None:
-        value = int(value)
-        if slider == "head":
-            set_servo(0, value)
-        elif slider == "neck":
-            set_servo(1, value)
-        elif slider == "left_eye":
-            set_servo(2, value)
-        elif slider == "right_eye":
-            set_servo(3, value)
-        elif slider == "left_arm":
-            set_servo(4, value)
-        elif slider == "right_arm":
-            set_servo(5, value)
-
     button = request.form.get('button')
     action = request.form.get('action')
 
@@ -223,6 +250,7 @@ def handle_text():
     return 'OK'
 
 if __name__ == '__main__':
+    init_servos()
     camera = Camera()  # Create an instance of the Camera class
     camera.start_stream()  # Start the camera stream
     app.run(host='0.0.0.0', port=5000, threaded=True)
