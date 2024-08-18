@@ -7,7 +7,7 @@ import picamera
 from adafruit_pca9685 import PCA9685
 from board import SCL, SDA
 import busio
-import ST7789 as ST7789  
+import adafruit_st7789 as ST7789  
 from PIL import Image, ImageDraw, ImageFont
 
 
