@@ -7,9 +7,9 @@ import picamera
 from adafruit_pca9685 import PCA9685
 from board import SCL, SDA
 import busio
-import adafruit_st7789 as ST7789  
 from PIL import Image, ImageDraw, ImageFont
-
+from luma.core.interface.serial import spi
+from luma.lcd.device import st7789
 
 font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 36)  # Tripled from default size 12
 
@@ -78,22 +78,9 @@ pwm_b = GPIO.PWM(ENB_PIN, 100)  # PWM frequency is set to 100 Hz
 
 app = Flask(__name__, template_folder='templates')
 
-# Initialize the ST7789 display (SPI)
-RST_PIN = 25  # Reset pin for ST7789
-DC_PIN = 8  # Data/Command pin for ST7789
-SPI_PORT = 0  # SPI port (0 for /dev/spidev0.0)
-SPI_DEVICE = 0  # SPI device (0 for /dev/spidev0.0)
-spi_speed_hz = 40000000  # 40MHz SPI speed
-
-disp = ST7789.ST7789(
-    SPI_PORT,
-    SPI_DEVICE,
-    rst=RST_PIN,
-    dc=DC_PIN,
-    spi_speed_hz=spi_speed_hz
-)
-
-disp.begin()
+# Initialize the ST7789 display (SPI) using luma.lcd
+serial = spi(port=0, device=0, gpio_DC=8, gpio_RST=25, bus_speed_hz=40000000)
+disp = st7789(serial, width=240, height=240)
 
 def control_motors(left_speed, right_speed):
     # Convert the speed values (-100 to 100) to a PWM duty cycle (0 to 100)
@@ -166,7 +153,7 @@ class Camera:
                 # Wait for a short time before capturing the next frame
                 time.sleep(0.1)
 
-# Function to display text on the ST7789 screen
+# Function to display text on the ST7789 screen using luma.lcd
 def display_text(text):
     # Create a blank image with the same dimensions as the display
     width, height = disp.width, disp.height
