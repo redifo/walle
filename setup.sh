@@ -8,7 +8,9 @@ sudo apt install -y python3 python3-pip python3-venv
 
 # Create a virtual environment
 python3 -m venv my_project_env
-source my_project_env/bin/activate
+
+# activate the v env
+source /home/Desktop/repo/my_project_env/bin/activate
 
 # Install necessary Python libraries
 pip install RPi.GPIO picamera adafruit-circuitpython-servokit adafruit-circuitpython-pca9685 \
